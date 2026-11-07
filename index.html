@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INSPEKTA ELITE | Automobile Inspection System & Multi-Tenant SaaS</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .fouc-cloak { opacity: 0 !important; visibility: hidden !important; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #030303; 
+            color: #f8fafc; 
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+        .font-tech { font-family: 'Space Grotesk', sans-serif; }
+        
+        .text-gradient-gold {
+            background: linear-gradient(135deg, #FFDF73 0%, #D4AF37 50%, #997A15 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .bg-gradient-gold { background: linear-gradient(135deg, #D4AF37 0%, #997A15 100%); }
+        
+        .ambient-glow {
+            position: absolute; border-radius: 50%; filter: blur(140px); z-index: -1; pointer-events: none;
+        }
+        .glow-1 { top: -10%; left: -10%; width: 600px; height: 600px; background: rgba(212, 175, 55, 0.08); }
+        .glow-2 { bottom: 10%; right: -10%; width: 700px; height: 700px; background: rgba(56, 189, 248, 0.05); }
+
+        .glass-panel {
+            background: rgba(18, 18, 20, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 20px 40px rgba(0,0,0,0.6);
+        }
+        
+        .hud-border { position: relative; }
+        .hud-border::before, .hud-border::after {
+            content: ''; position: absolute; width: 12px; height: 12px; border: 2px solid #D4AF37; transition: all 0.3s ease;
+        }
+        .hud-border::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .hud-border::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+        .hud-card:hover .hud-border::before { width: 24px; height: 24px; }
+        .hud-card:hover .hud-border::after { width: 24px; height: 24px; }
+
+        .scan-line {
+            width: 100%; height: 2px; background: #D4AF37;
+            position: absolute; top: 0; left: 0;
+            box-shadow: 0 0 15px 3px rgba(212, 175, 55, 0.8);
+            animation: scan 2.5s ease-in-out infinite alternate;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0.2; }
+        }
+
+        .pulse-gold { animation: pulseGold 2s infinite; }
+        @keyframes pulseGold {
+            0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        .tab-btn { color: #64748b; border-bottom: 2px solid transparent; transition: all 0.3s; }
+        .tab-btn.active { color: #D4AF37; border-bottom-color: #D4AF37; }
+
+        .input-dark {
+            background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white; transition: all 0.3s ease;
+        }
+        .input-dark:focus {
+            outline: none; border-color: #D4AF37; box-shadow: 0 0 15px rgba(212,175,55,0.25);
+        }
+
+        /* Mockup Frame Mobile */
+        .mobile-frame {
+            width: 380px; height: 720px; border-radius: 40px;
+            border: 12px solid #1e1e24; box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            overflow: hidden; position: relative; background: #09090b;
+        }
+    </style>
+</head>
+<body class="fouc-cloak flex flex-col min-h-screen">
+
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Multi-Role Switcher Bar (Simulasi Backend / Multi-Actor) -->
+    <div class="bg-black/90 border-b border-white/10 px-4 py-2 text-xs flex flex-wrap justify-between items-center z-50 sticky top-0 backdrop-blur-md">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span class="font-tech text-gray-400">ENGINE ROLE SWITCHER:</span>
+        </div>
+        <div class="flex gap-2 font-tech">
+            <button onclick="switchRoleView('public')" id="btn-role-public" class="px-3 py-1 rounded bg-[#D4AF37] text-black font-bold">Public Landing & Guest Tracker</button>
+            <button onclick="switchRoleView('inspector')" id="btn-role-inspector" class="px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-300">Field Inspector (PWA Mobile)</button>
+            <button onclick="switchRoleView('dashboard')" id="btn-role-dashboard" class="px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-300">Ops & Approval Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="glass-panel py-4 px-6 md:px-12 flex justify-between items-center border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <svg class="w-7 h-7 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span class="font-extrabold text-xl tracking-wider font-tech">INSPEKTA<span class="text-[#D4AF37]">ELITE</span></span>
+        </div>
+        <div class="hidden md:flex gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-400 font-tech">
+            <a href="#metodologi" class="hover:text-white transition-colors">Metodologi SOP</a>
+            <a href="#komparasi" class="hover:text-white transition-colors">Keunggulan System</a>
+            <a href="#pdf-preview" class="hover:text-white transition-colors">Contoh Laporan PDF</a>
+            <a href="#booking" class="hover:text-white transition-colors">Layanan & Price</a>
+        </div>
+        <button onclick="scrollToBooking()" class="bg-gradient-gold text-black px-5 py-2.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all font-tech">
+            Order Inspeksi
+        </button>
+    </nav>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main id="main-content" class="flex-grow">
+        
+        <!-- ========================================== -->
+        <!-- VIEW 1: PUBLIC LANDING PAGE & GUEST TRACKER -->
+        <!-- ========================================== -->
+        <div id="view-public" class="space-y-24 pb-20">
+            
+            <!-- HERO SECTION -->
+            <header class="relative pt-20 pb-16 px-6 md:px-12 lg:px-20 min-h-[85vh] flex flex-col justify-center items-center text-center overflow-hidden">
+                <div class="inline-block px-4 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[11px] font-bold uppercase tracking-widest mb-6 font-tech">
+                    Independent Quality Assurance & Dual-Gate Approval
+                </div>
+                
+                <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.15]">
+                    Inspeksi Kendaraan Independen<br>
+                    <span class="text-gradient-gold">& Transparan Berstandar Pabrikan</span>
+                </h1>
+                
+                <p class="text-gray-400 max-w-3xl text-sm md:text-base leading-relaxed mb-10">
+                    Hindari risiko kerugian finansial akibat mobil bekas tabrakan struktur, terendam banjir, atau manipulasi odometer. Kami hadir membawa standar SOP ketat, bukti media berbasis waktu, serta validasi berjenjang oleh Senior Inspector & Owner.
+                </p>
+
+                <!-- DUAL-FUNCTION WIDGET (SUBSTITUSI SIMULASI PLAT NOMOR BERFUNGSI JELAS) -->
+                <div class="glass-panel p-4 md:p-6 rounded-3xl w-full max-w-2xl hud-card relative z-10 hud-border border border-[#D4AF37]/30">
+                    <!-- Widget Tab Switcher -->
+                    <div class="flex gap-4 border-b border-white/10 pb-3 mb-5 font-tech text-xs">
+                        <button onclick="switchWidgetTab('tracker')" id="wtab-tracker" class="tab-btn active font-bold uppercase tracking-widest pb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 7 0 0114 0z"/></svg>
+                            1. Cek Status Inspeksi (Guest Tracker)
+                        </button>
+                        <button onclick="switchWidgetTab('booking')" id="wtab-booking" class="tab-btn font-bold uppercase tracking-widest pb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            2. Order Inspeksi Baru
+                        </button>
+                    </div>
+
+                    <!-- TAB 1 CONTENT: GUEST TRACKER -->
+                    <div id="wcontent-tracker" class="space-y-4">
+                        <p class="text-xs text-left text-gray-400">Masukkan Nomor WhatsApp & Kunci Akses Unik (dikirimkan otomatis via Fonnte WA saat booking pertama):</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input type="text" id="trackWaInput" placeholder="Contoh: 081234567890" value="081299887766" class="input-dark py-3 px-4 rounded-xl text-sm font-tech">
+                            <input type="text" id="trackKeyInput" placeholder="Kunci Akses (cth: KEY-9921)" value="KEY-9921" class="input-dark py-3 px-4 rounded-xl text-sm font-tech uppercase">
+                        </div>
+                        <button onclick="verifyAndTrackStatus()" class="w-full bg-gradient-gold text-black font-extrabold py-3.5 rounded-xl uppercase tracking-widest text-xs font-tech hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all flex items-center justify-center gap-2">
+                            Lacak Progres Pesanan Real-Time
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- TAB 2 CONTENT: QUICK BOOKING DIRECT -->
+                    <div id="wcontent-booking" class="hidden space-y-4 text-left">
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            Pemesanan inspeksi mudah tanpa pembuatan akun yang rumit. Sistem kami akan memvalidasi slot ketersediaan inspektor aktif dan mengirimkan **Kunci Akses** ke WhatsApp Anda.
+                        </p>
+                        <button onclick="scrollToBooking()" class="w-full bg-white text-black font-extrabold py-3.5 rounded-xl uppercase tracking-widest text-xs font-tech hover:bg-gray-200 transition-all flex items-center justify-center gap-2">
+                            Lanjut Isi Formulir Pemesanan
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-10 flex flex-wrap justify-center gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-500 font-tech">
+                    <span class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 175+ Dynamic Checklist</span>
+                    <span class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Evidence Quality Control</span>
+                    <span class="flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Fonnte WA Integration</span>
+                </div>
+            </header>
+
+            <!-- SECTION WARNING / BANNER EDUKASI RISIKO -->
+            <section class="px-6 md:px-12 lg:px-20 max-w-6xl mx-auto">
+                <div class="glass-panel p-8 rounded-3xl border border-red-500/30 bg-red-500/5 relative overflow-hidden">
+                    <div class="flex flex-col md:flex-row items-center gap-6">
+                        <div class="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
+                            <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold font-tech text-white mb-2">Mengapa Inspeksi Profesional Sangat Krusial?</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Lebih dari 65% kerugian pembeli mobil bekas terjadi akibat kerusakan tersembunyi yang disamarkan oknum penjual: sasis dipotong/dillas ulang pasca kecelakaan, komponen elektrikal terendam banjir air asin, hingga penurunan odometer manual. Jangan mengandalkan pengecekan visual biasa tanpa alat diagnostik komprehensif.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION METODOLOGI SOP DINAMIS -->
+            <section id="metodologi" class="px-6 md:px-12 lg:px-20 max-w-6xl mx-auto space-y-10">
+                <div class="text-center space-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] font-tech">Strict Inspection Protocol</span>
+                    <h2 class="text-3xl font-extrabold font-tech">Metodologi SOP Dinamis Berbasis Kategori</h2>
+                    <p class="text-xs text-gray-400 max-w-xl mx-auto">Sistem kami menyesuaikan checklist inspeksi secara otomatis berdasarkan jenis dan era pembuatan kendaraan.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-panel p-6 rounded-2xl border border-white/10 hover:border-[#D4AF37]/50 transition-all">
+                        <div class="w-12 h-12 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37] mb-4 font-tech font-bold">01</div>
+                        <h4 class="font-bold text-white mb-2 font-tech">Sedan / SUV Modern (>= 2018)</h4>
+                        <ul class="text-xs text-gray-400 space-y-2">
+                            <li>• Pemindaian Komputer OBD-II DTC Code</li>
+                            <li>• Modul ADAS & Radar Safety Check</li>
+                            <li>• Electronic Parking Brake (EPB) Test</li>
+                            <li>• Sensor Transmisi Otomatis Dual-Clutch</li>
+                        </ul>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl border border-white/10 hover:border-[#D4AF37]/50 transition-all">
+                        <div class="w-12 h-12 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37] mb-4 font-tech font-bold">02</div>
+                        <h4 class="font-bold text-white mb-2 font-tech">Mobil Klasik / Retro (&lt; 2000)</h4>
+                        <ul class="text-xs text-gray-400 space-y-2">
+                            <li>• Pemeriksaan Karburator & Choke System</li>
+                            <li>• Uji Ketebalan Sasis & Keropos Dek Bawah</li>
+                            <li>• Sistem Kebocoran Oli Karter & Header</li>
+                            <li>• Otentisitas Komponen Orisinal Pabrik</li>
+                        </ul>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl border border-white/10 hover:border-[#D4AF37]/50 transition-all">
+                        <div class="w-12 h-12 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37] mb-4 font-tech font-bold">03</div>
+                        <h4 class="font-bold text-white mb-2 font-tech">Truk & Heavy Commercial</h4>
+                        <ul class="text-xs text-gray-400 space-y-2">
+                            <li>• Sistem Pengereman Udara (Air Brake Test)</li>
+                            <li>• Ketahanan Sasis Utama & Kargo Ban Ganda</li>
+                            <li>• Uji Tekanan Kompresi Mesin Diesel</li>
+                            <li>• Pengukur Wear Gauge Tapak Ban Komersial</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION KOMPARASI / KEUNGGULAN SYSTEM -->
+            <section id="komparasi" class="px-6 md:px-12 lg:px-20 max-w-6xl mx-auto space-y-8">
+                <div class="text-center space-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] font-tech">Comparison Matrix</span>
+                    <h2 class="text-3xl font-extrabold font-tech">Bengkel Biasa vs Inspeksi Digital Inspekta</h2>
+                </div>
+
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/10">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-black/60 border-b border-white/10 font-tech text-gray-400">
+                                <th class="p-4">Fitur & Parameter Inspeksi</th>
+                                <th class="p-4">Pengecekan Bengkel Konvensional</th>
+                                <th class="p-4 text-[#D4AF37]">Inspekta Elite Inspection System</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            <tr>
+                                <td class="p-4 font-bold">Standard Operating Procedure (SOP)</td>
+                                <td class="p-4 text-gray-400">Tergantung ingatan mekanik (Tidak terstandar)</td>
+                                <td class="p-4 text-green-400 font-bold">✓ Dynamic Checklist terkunci versi SOP</td>
+                            </tr>
+                            <tr>
+                                <td class="p-4 font-bold">Validasi Bukti Kerusakan</td>
+                                <td class="p-4 text-gray-400">Catatan kertas tanpa foto / bukti visual</td>
+                                <td class="p-4 text-green-400 font-bold">✓ Wajib Foto/Video Evidence + Metadata Time</td>
+                            </tr>
+                            <tr>
+                                <td class="p-4 font-bold">Pengawasan Kualitas (Quality Gate)</td>
+                                <td class="p-4 text-gray-400">Tanpa pemeriksaan ulang oleh atasan</td>
+                                <td class="p-4 text-green-400 font-bold">✓ Double Gate Review (Senior Inspector + Owner)</td>
+                            </tr>
+                            <tr>
+                                <td class="p-4 font-bold">Distribusi Laporan Hasil</td>
+                                <td class="p-4 text-gray-400">Lisan / Kertas ringkas rentan hilang</td>
+                                <td class="p-4 text-green-400 font-bold">✓ Auto PDF Generation & Direct Fonnte WhatsApp Delivery</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION PDF SIMULATOR REALISTIS (A4 PAPER LOOK) -->
+            <section id="pdf-preview" class="px-6 md:px-12 lg:px-20 max-w-6xl mx-auto space-y-8">
+                <div class="text-center space-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] font-tech">Authentic Document Output</span>
+                    <h2 class="text-3xl font-extrabold font-tech">Simulasi Laporan PDF Berstandar Legal</h2>
+                    <p class="text-xs text-gray-400">Laporan resmi hanya diterbitkan setelah memenuhi Quality Gate (Status APPROVED & Pembayaran PAID).</p>
+                </div>
+
+                <!-- A4 SIMULATION CONTAINER -->
+                <div class="glass-panel p-4 md:p-8 rounded-3xl border border-white/10 max-w-4xl mx-auto">
+                    
+                    <!-- PDF Toolbar Controls Mock -->
+                    <div class="bg-black/80 border border-white/10 rounded-xl p-3 mb-6 flex justify-between items-center text-xs font-tech">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2.5 py-1 rounded bg-red-500/20 text-red-400 font-bold border border-red-500/30">PDF DOCUMENT</span>
+                            <span class="text-gray-400">Document_Report_B1234XYZ_VERIFIED.pdf</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500">Hal 1 dari 4</span>
+                            <button onclick="alert('Mengunduh sampel laporan PDF...')" class="bg-gradient-gold text-black font-bold px-3 py-1 rounded">Download PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- PDF Sheet Surface -->
+                    <div class="bg-slate-900 text-slate-100 p-8 md:p-12 rounded-xl border border-white/20 shadow-2xl space-y-8 text-left relative overflow-hidden">
+                        <div class="scan-line"></div>
+                        
+                        <!-- PDF Header -->
+                        <div class="flex justify-between items-start border-b border-slate-700 pb-6">
+                            <div>
+                                <h2 class="text-2xl font-black tracking-widest font-tech text-white">INSPEKTA<span class="text-[#D4AF37]">ELITE</span></h2>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-wider">Automobile Inspection & Certification System</p>
+                                <p class="text-[10px] text-slate-500">Tenant: PT Oceanindo Inspection Hub (ID: TNT-8812)</p>
+                            </div>
+                            <div class="text-right text-xs font-tech">
+                                <p class="font-bold text-[#D4AF37]">NO. REPORT: RPT-2026-0911</p>
+                                <p class="text-slate-400">Tgl Inspeksi: 07 Nov 2026</p>
+                                <p class="text-slate-400">Versi SOP: SOP-SEDAN-v1.4</p>
+                            </div>
+                        </div>
+
+                        <!-- Object Info Grid -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800 text-xs">
+                            <div>
+                                <span class="text-slate-500 block text-[9px] uppercase">Nomor Polisi</span>
+                                <span class="font-bold font-tech text-white">B 1234 XYZ</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block text-[9px] uppercase">Merk & Model</span>
+                                <span class="font-bold text-slate-200">BMW 320i M Sport</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block text-[9px] uppercase">Tahun Pembuatan</span>
+                                <span class="font-bold text-slate-200">2021</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block text-[9px] uppercase">Odometer Verified</span>
+                                <span class="font-bold text-emerald-400 font-tech">42,500 KM</span>
+                            </div>
+                        </div>
+
+                        <!-- AI Executive Summary Block -->
+                        <div class="bg-slate-950/80 p-5 rounded-xl border border-amber-500/20 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest font-tech flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    AI-Assisted Executive Summary (Narrative Engine)
+                                </span>
+                                <span class="text-[9px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/20">Checked by Senior Reviewer</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Kendaraan dalam kondisi **Sangat Baik (Grade A-)**. Tidak ditemukan indikasi bekas terendam banjir maupun tabrakan struktur sasis utama. Ditemukan catatan servis minor pada rembesan oli tipis karter transmisi dan karet *engine mounting* kanan yang mulai membal. Sistem komputer ECU bersih dari kode error aktif.
+                            </p>
+                        </div>
+
+                        <!-- Technical Scorecard Grid -->
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 font-tech">Komponen Scorecard System</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <span>Mesin & Transmisi</span>
+                                    <span class="font-tech font-bold text-emerald-400">92 / 100 (Baik)</span>
+                                </div>
+                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <span>Sasis & Struktur Utama</span>
+                                    <span class="font-tech font-bold text-emerald-400">98 / 100 (Utuh)</span>
+                                </div>
+                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <span>OBD-II Electrical Scanner</span>
+                                    <span class="font-tech font-bold text-emerald-400">100 / 100 (Clean)</span>
+                                </div>
+                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <span>Sistem Rem & Kaki-kaki</span>
+                                    <span class="font-tech font-bold text-amber-400">78 / 100 (Need Service)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Photo Evidence Attachment Section -->
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 font-tech">Sampel Foto Bukti Evidence keropos/kebocoran (Mandatory Evidence)</h4>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-center space-y-1">
+                                    <div class="w-full h-20 bg-slate-800 rounded flex items-center justify-center text-slate-500 text-[10px]">Foto Karter Transmisi</div>
+                                    <span class="text-[9px] text-amber-400 block">Rembes Oli (Minor)</span>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-center space-y-1">
+                                    <div class="w-full h-20 bg-slate-800 rounded flex items-center justify-center text-slate-500 text-[10px]">Foto Sasis Depan Kanan</div>
+                                    <span class="text-[9px] text-emerald-400 block">Sasis Utuh (PASS)</span>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-center space-y-1">
+                                    <div class="w-full h-20 bg-slate-800 rounded flex items-center justify-center text-slate-500 text-[10px]">Foto Scanner OBD DTC</div>
+                                    <span class="text-[9px] text-emerald-400 block">0 DTC Code (PASS)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verification Signatures & Stamp -->
+                        <div class="flex justify-between items-end border-t border-slate-800 pt-6 text-xs font-tech">
+                            <div class="space-y-1">
+                                <p class="text-slate-500 text-[9px]">DISETUJUI OLEH:</p>
+                                <p class="font-bold text-white">Ir. Hendra Wijaya, ST</p>
+                                <p class="text-[#D4AF37] text-[10px]">Owner / Chief Inspector</p>
+                                <p class="text-[8px] text-emerald-400">✓ Digital Hash: SHA256-99128A8B</p>
+                            </div>
+                            <div class="w-24 h-24 rounded-full border-2 border-dashed border-[#D4AF37]/40 flex flex-col items-center justify-center text-center p-2 transform rotate-12">
+                                <span class="text-[8px] text-[#D4AF37] font-bold">VERIFIED</span>
+                                <span class="text-[7px] text-slate-400">INSPEKTA QA GATE</span>
+                                <span class="text-[6px] text-emerald-400 font-bold">PASSED</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION BOOKING FORM (WITH MANDATORY WA NUMBER) -->
+            <section id="booking" class="px-6 md:px-12 lg:px-20 max-w-4xl mx-auto space-y-8">
+                <div class="text-center space-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] font-tech">Online Inspection Booking</span>
+                    <h2 class="text-3xl font-extrabold font-tech">Formulir Pemesanan Inspeksi</h2>
+                    <p class="text-xs text-gray-400">Nomor WhatsApp wajib diisi untuk penerimaan Kunci Akses & Laporan PDF akhir.</p>
+                </div>
+
+                <form onsubmit="handlePublicBooking(event)" class="glass-panel p-8 rounded-3xl space-y-6 border border-white/10">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                        <div>
+                            <label class="text-xs font-bold text-gray-300 block mb-2">Nama Lengkap Pelanggan *</label>
+                            <input type="text" id="bookName" required placeholder="Contoh: Pak Joko" class="w-full input-dark py-3 px-4 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-[#D4AF37] block mb-2">Nomor WhatsApp (Wajib) *</label>
+                            <input type="tel" id="bookWa" required placeholder="Contoh: 081299887766" class="w-full input-dark py-3 px-4 rounded-xl text-sm font-tech">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                        <div>
+                            <label class="text-xs font-bold text-gray-300 block mb-2">Kategori Kendaraan *</label>
+                            <select id="bookCategory" onchange="updateSopHint()" class="w-full input-dark py-3 px-4 rounded-xl text-sm font-tech">
+                                <option value="sedan">Sedan / SUV Modern (>=2018)</option>
+                                <option value="klasik">Mobil Klasik / Retro (&lt;2000)</option>
+                                <option value="truk">Truk / Heavy Commercial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-300 block mb-2">Merk & Model Kendaraan *</label>
+                            <input type="text" id="bookModel" required placeholder="Contoh: Toyota Fortuner 2.8" class="w-full input-dark py-3 px-4 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-300 block mb-2">Tahun Pembuatan *</label>
+                            <input type="number" id="bookYear" required placeholder="2022" value="2022" class="w-full input-dark py-3 px-4 rounded-xl text-sm font-tech">
+                        </div>
+                    </div>
+
+                    <div id="sop-hint-box" class="bg-black/40 p-3 rounded-xl border border-white/5 text-[11px] text-gray-400 text-left font-tech">
+                        <span class="text-[#D4AF37] font-bold">SOP ENGINE HINT:</span> Mengaktifkan modul OBD-II Scanner, ADAS Radar Check, dan Electronic Parking Brake.
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                        <div>
+                            <label class="text-xs font-bold text-gray-300 block mb-2">Lokasi Kendaraan *</label>
+                            <input type="text" id="bookLocation" required placeholder="Alamat / Area Docking Pelabuhan / Banten" class="w-full input-dark py-3 px-4 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-300 block mb-2">Tanggal & Slot Jadwal *</label>
+                            <input type="date" id="bookDate" required class="w-full input-dark py-3 px-4 rounded-xl text-sm font-tech">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gradient-gold text-black font-extrabold py-4 rounded-xl uppercase tracking-widest text-xs font-tech hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] transition-all">
+                        Konfirmasi Booking & Dapatkan Kunci Akses WA
+                    </button>
+                </form>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: FIELD INSPECTOR PWA MOBILE SIMULATOR -->
+        <!-- ========================================== -->
+        <div id="view-inspector" class="hidden py-10 flex flex-col items-center">
+            <div class="text-center mb-6 space-y-1">
+                <span class="text-xs font-bold text-[#D4AF37] font-tech uppercase tracking-widest">Field Inspector Workspace (PWA View)</span>
+                <h2 class="text-2xl font-bold font-tech">Simulasi App Mobile Inspektor Lapangan</h2>
+            </div>
+
+            <!-- SMARTPHONE CONTAINER -->
+            <div class="mobile-frame flex flex-col text-left">
+                
+                <!-- Phone Header -->
+                <div class="bg-black p-4 border-b border-white/10 flex justify-between items-center text-xs">
+                    <div>
+                        <span class="text-[9px] text-gray-400 block font-tech">PENUGASAN INSPEKSI</span>
+                        <span class="font-bold text-white font-tech">B 1234 XYZ (BMW 320i)</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-tech font-bold">IN_PROGRESS</span>
+                </div>
+
+                <!-- Phone Content Body -->
+                <div class="flex-grow p-4 space-y-4 overflow-y-auto text-xs">
+                    
+                    <!-- Live Progress Bar -->
+                    <div class="bg-white/5 p-3 rounded-xl border border-white/10 space-y-1">
+                        <div class="flex justify-between font-tech text-[10px]">
+                            <span class="text-gray-400">PROGRES CHECKLIST LIVE</span>
+                            <span id="pwa-progress-text" class="text-[#D4AF37] font-bold">75% (3/4 Wajib)</span>
+                        </div>
+                        <div class="w-full h-2 bg-black rounded-full overflow-hidden">
+                            <div id="pwa-progress-bar" class="h-full bg-gradient-gold rounded-full transition-all duration-500" style="width: 75%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Checklist Item 1 -->
+                    <div class="bg-black/60 p-3 rounded-xl border border-white/10 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-gray-200">1. Tekanan Kompresi Piston</span>
+                            <span class="text-[9px] text-emerald-400 font-bold font-tech">PASS</span>
+                        </div>
+                        <p class="text-[10px] text-gray-400">Status kompresi 140 psi (Normal).</p>
+                    </div>
+
+                    <!-- Checklist Item 2 (Item N/A dengan Alasan Wajib) -->
+                    <div class="bg-black/60 p-3 rounded-xl border border-white/10 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-gray-200">2. Sunroof / Panoramic Roof</span>
+                            <span class="text-[9px] text-amber-400 font-bold font-tech">N/A</span>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] text-gray-400 block">Alasan N/A (Wajib Isian):</label>
+                            <select class="w-full bg-black border border-white/20 text-[10px] p-1.5 rounded text-gray-300">
+                                <option>Unit Varian Tidak Memiliki Fitur Sunroof</option>
+                                <option>Komponen Dimodifikasi Pasarmalam</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Checklist Item 3 (Item Temuan & Upload Evidence Foto) -->
+                    <div class="bg-black/60 p-3 rounded-xl border border-amber-500/30 space-y-2">
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-amber-300">3. Rembesan Oli Karter Transmisi</span>
+                            <span class="text-[9px] text-amber-400 font-bold font-tech">NEEDS_ATTENTION</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[9px] text-gray-400 block">Foto Evidence Kerusakan (Wajib):</label>
+                            <div class="flex gap-2 items-center">
+                                <div class="w-12 h-12 rounded bg-white/10 border border-white/20 flex items-center justify-center text-[8px] text-gray-400">FOTO.JPG</div>
+                                <button onclick="alert('Simulasi pengunggahan foto bukti inspeksi...')" class="bg-white/10 hover:bg-white/20 text-white text-[9px] px-2.5 py-1.5 rounded border border-white/10 font-tech">Upload Foto Baru</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Self-Review Checkbox Gate -->
+                    <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center gap-2">
+                        <input type="checkbox" id="selfReviewCheck" onchange="togglePwaSubmit()" class="rounded bg-black border-white/30 text-[#D4AF37]">
+                        <label for="selfReviewCheck" class="text-[10px] text-gray-300">Saya telah melakukan Self-Review mandiri seluruh data inspeksi.</label>
+                    </div>
+
+                </div>
+
+                <!-- Phone Footer Button -->
+                <div class="p-3 bg-black border-t border-white/10">
+                    <button id="btnPwaSubmit" disabled onclick="submitInspectionFromPwa()" class="w-full py-2.5 rounded-xl bg-gray-700 text-gray-400 font-bold font-tech text-xs uppercase tracking-wider cursor-not-allowed">
+                        Submit Inspection (Locked)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: OPERATIONS & QUALITY GATE DASHBOARD -->
+        <!-- ========================================== -->
+        <div id="view-dashboard" class="hidden px-6 md:px-12 py-10 space-y-8 text-left max-w-7xl mx-auto">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div>
+                    <span class="text-xs font-bold text-[#D4AF37] font-tech uppercase tracking-widest">Enterprise Backend Operations</span>
+                    <h2 class="text-2xl font-bold font-tech">Quality Control & Approval Dashboard</h2>
+                </div>
+                <div class="flex gap-2 text-xs font-tech">
+                    <span class="px-3 py-1 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">Tenant: PT Oceanindo Hub</span>
+                    <span class="px-3 py-1 rounded bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30">Role: Owner / Senior</span>
+                </div>
+            </div>
+
+            <!-- Operations Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-tech">
+                <div class="glass-panel p-4 rounded-xl border border-white/10">
+                    <span class="text-gray-400 block mb-1">TOTAL BOOKING HARI INI</span>
+                    <span class="text-2xl font-bold text-white">12 Inspeksi</span>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-white/10">
+                    <span class="text-gray-400 block mb-1">ANTREAN SENIOR REVIEW</span>
+                    <span class="text-2xl font-bold text-amber-400">3 Laporan</span>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-white/10">
+                    <span class="text-gray-400 block mb-1">MENUNGGU PELUNASAN (PAID)</span>
+                    <span class="text-2xl font-bold text-blue-400">2 Transaksi</span>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-white/10">
+                    <span class="text-gray-400 block mb-1">PDF TERBIT & DIKIRIM (WA)</span>
+                    <span class="text-2xl font-bold text-emerald-400">8 PDF Ready</span>
+                </div>
+            </div>
+
+            <!-- Review Worktable -->
+            <div class="glass-panel rounded-2xl p-6 border border-white/10 space-y-4">
+                <h3 class="text-sm font-bold font-tech text-white uppercase tracking-wider">Antrean Worktable Quality Gate</h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-tech">
+                        <thead>
+                            <tr class="bg-black/60 text-gray-400 border-b border-white/10">
+                                <th class="p-3">ID Inspection</th>
+                                <th class="p-3">Objek Kendaraan</th>
+                                <th class="p-3">Field Inspector</th>
+                                <th class="p-3">Status Workstream</th>
+                                <th class="p-3">Payment Status</th>
+                                <th class="p-3 text-right">Aksi Execution</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            <tr>
+                                <td class="p-3 font-bold text-[#D4AF37]">INSP-2026-8801</td>
+                                <td class="p-3">B 1234 XYZ (BMW 320i)</td>
+                                <td class="p-3 text-gray-300">Pak Agus (K0086)</td>
+                                <td class="p-3"><span id="dash-status-badge" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">UNDER_REVIEW</span></td>
+                                <td class="p-3"><span id="dash-pay-badge" class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 font-bold">UNPAID</span></td>
+                                <td class="p-3 text-right space-x-2">
+                                    <button onclick="executeSeniorApproval()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold">Senior Approve</button>
+                                    <button onclick="executeOwnerFastTrack()" class="px-3 py-1 bg-[#D4AF37] hover:bg-amber-400 text-black rounded font-bold">Owner Fast-Track</button>
+                                    <button onclick="executePaymentSettlement()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold">Validate PAID</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PDF Release Gate Indicator -->
+                <div class="bg-black/80 p-4 rounded-xl border border-white/10 flex justify-between items-center text-xs">
+                    <div>
+                        <span class="text-gray-400 block font-tech">STRICT PDF GENERATOR GATE ENFORCEMENT:</span>
+                        <span id="gate-condition-text" class="text-red-400 font-bold font-tech">KONDISI TERKUNCI (Syarat: Status APPROVED & Payment PAID)</span>
+                    </div>
+                    <button id="btnGeneratePdf" disabled onclick="generateAndSendPdfViaWa()" class="px-5 py-2.5 rounded-xl bg-gray-800 text-gray-500 font-bold font-tech uppercase tracking-wider cursor-not-allowed">
+                        Generate & Deliver PDF Report via WA (Fonnte)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FLOATING FONNTE WHATSAPP GATEWAY CONSOLE LOG STREAM -->
+    <div class="fixed bottom-4 right-4 z-50 w-80 md:w-96 glass-panel rounded-2xl border border-emerald-500/40 p-3 shadow-2xl font-tech text-[10px] space-y-2 text-left">
+        <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
+            <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Fonnte WA Gateway Stream
+            </span>
+            <span class="text-gray-500 text-[8px]">LOG MONITOR</span>
+        </div>
+        <div id="fonnte-log-box" class="h-28 overflow-y-auto space-y-1.5 text-gray-300 font-mono text-[9px]">
+            <p class="text-gray-500">[SYSTEM] Fonnte Adapter initialized for Tenant PT Oceanindo.</p>
+        </div>
+    </div>
+
+    <!-- MODAL POPUP STATUS TRACKING REAL-TIME -->
+    <div id="modalTracking" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full p-6 rounded-3xl border border-[#D4AF37]/40 space-y-6 text-left relative">
+            <button onclick="closeTrackingModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">✕</button>
+            
+            <div class="space-y-1">
+                <span class="text-[10px] font-bold text-[#D4AF37] font-tech uppercase tracking-widest">Real-Time Guest Tracker</span>
+                <h3 class="text-xl font-bold font-tech text-white">Status Pesanan Inspeksi</h3>
+                <p class="text-xs text-gray-400">Nomor WA: <span id="track-modal-wa" class="text-white font-bold font-tech">081299887766</span> | Key: <span id="track-modal-key" class="text-[#D4AF37] font-bold font-tech">KEY-9921</span></p>
+            </div>
+
+            <!-- Workflow Progress Nodes -->
+            <div class="space-y-4 text-xs font-tech">
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center font-bold text-[10px]">✓</div>
+                    <div>
+                        <p class="font-bold text-white">1. BOOKED (Pemesanan Berhasil)</p>
+                        <p class="text-[10px] text-gray-400">DP Dikonfirmasi & Kunci Akses Terkirim via WA.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center font-bold text-[10px]">✓</div>
+                    <div>
+                        <p class="font-bold text-white">2. ASSIGNED (Inspektor Ditugaskan)</p>
+                        <p class="text-[10px] text-gray-400">Inspektor: Pak Agus (K0086) - Standar SOP Aktif.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center font-bold text-[10px]">3</div>
+                    <div>
+                        <p class="font-bold text-amber-300" id="modal-step3-title">IN_PROGRESS (Pemeriksaan Lapangan)</p>
+                        <p class="text-[10px] text-gray-400">Inspektor sedang mengisi checklist live & upload evidence.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 opacity-40">
+                    <div class="w-6 h-6 rounded-full bg-gray-700 text-gray-400 flex items-center justify-center font-bold text-[10px]">4</div>
+                    <div>
+                        <p class="font-bold text-gray-300">4. QUALITY GATE APPROVAL</p>
+                        <p class="text-[10px] text-gray-400">Pemeriksaan ulang Senior Inspector & Owner Final.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeTrackingModal()" class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 font-bold font-tech text-xs uppercase tracking-wider">
+                Tutup Window Status
+            </button>
+        </div>
+    </div>
+
+    <!-- SCRIPT APPLICATION LOGIC -->
+    <script>
+        // FOUC Cloak Removal
+        document.addEventListener("DOMContentLoaded", () => {
+            setTimeout(() => {
+                document.body.style.cssText = 'opacity: 1 !important; visibility: visible !important; transition: opacity 0.4s ease-out;';
+            }, 50);
+            updateSopHint();
+        });
+
+        // App State Variables
+        let isApproved = false;
+        let isPaid = false;
+
+        // Fonnte Log Stream Helper
+        function addFonnteLog(msg) {
+            const box = document.getElementById('fonnte-log-box');
+            const time = new Date().toLocaleTimeString();
+            const p = document.createElement('p');
+            p.innerHTML = `<span class="text-emerald-500">[${time}]</span> ${msg}`;
+            box.appendChild(p);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // Role Switcher Navigation
+        function switchRoleView(role) {
+            document.getElementById('view-public').classList.add('hidden');
+            document.getElementById('view-inspector').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.add('hidden');
+
+            document.getElementById('btn-role-public').className = "px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-300";
+            document.getElementById('btn-role-inspector').className = "px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-300";
+            document.getElementById('btn-role-dashboard').className = "px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-300";
+
+            if(role === 'public') {
+                document.getElementById('view-public').classList.remove('hidden');
+                document.getElementById('btn-role-public').className = "px-3 py-1 rounded bg-[#D4AF37] text-black font-bold";
+            } else if(role === 'inspector') {
+                document.getElementById('view-inspector').classList.remove('hidden');
+                document.getElementById('btn-role-inspector').className = "px-3 py-1 rounded bg-[#D4AF37] text-black font-bold";
+            } else if(role === 'dashboard') {
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('btn-role-dashboard').className = "px-3 py-1 rounded bg-[#D4AF37] text-black font-bold";
+            }
+        }
+
+        // Widget Tab Switcher (Hero Section)
+        function switchWidgetTab(tab) {
+            document.getElementById('wcontent-tracker').classList.add('hidden');
+            document.getElementById('wcontent-booking').classList.add('hidden');
+            document.getElementById('wtab-tracker').classList.remove('active');
+            document.getElementById('wtab-booking').classList.remove('active');
+
+            if(tab === 'tracker') {
+                document.getElementById('wcontent-tracker').classList.remove('hidden');
+                document.getElementById('wtab-tracker').classList.add('active');
+            } else {
+                document.getElementById('wcontent-booking').classList.remove('hidden');
+                document.getElementById('wtab-booking').classList.add('active');
+            }
+        }
+
+        // Smooth Scroll to Booking Form
+        function scrollToBooking() {
+            switchRoleView('public');
+            document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // SOP Engine Hint Updater
+        function updateSopHint() {
+            const cat = document.getElementById('bookCategory').value;
+            const hint = document.getElementById('sop-hint-box');
+            if(cat === 'sedan') {
+                hint.innerHTML = `<span class="text-[#D4AF37] font-bold">SOP ENGINE HINT:</span> Mengaktifkan modul OBD-II Scanner, ADAS Radar Check, dan Electronic Parking Brake.`;
+            } else if(cat === 'klasik') {
+                hint.innerHTML = `<span class="text-[#D4AF37] font-bold">SOP ENGINE HINT:</span> Mengaktifkan modul Karburator, Ketebalan Dek/Sasis, & Inspeksi Keropos Dek Bawah.`;
+            } else {
+                hint.innerHTML = `<span class="text-[#D4AF37] font-bold">SOP ENGINE HINT:</span> Mengaktifkan Uji Rem Udara (Air Brake), Sasis Kargo, & Uji Kompresi Diesel Heavy Duty.`;
+            }
+        }
+
+        // Handle Booking Submission
+        function handlePublicBooking(e) {
+            e.preventDefault();
+            const wa = document.getElementById('bookWa').value;
+            const name = document.getElementById('bookName').value;
+            const key = 'KEY-' + Math.floor(1000 + Math.random() * 9000);
+
+            addFonnteLog(`SENDING WA TO ${wa}...`);
+            setTimeout(() => {
+                addFonnteLog(`[FONNTE SUCCESS] Kunci Akses (${key}) terkirim ke WA ${name}.`);
+                alert(`Booking Berhasil!\n\nKunci Akses Unik Anda: ${key}\nKunci ini telah dikirim via Fonnte WA ke ${wa}. Gunakan kunci ini untuk melacak status inspeksi!`);
+                document.getElementById('trackWaInput').value = wa;
+                document.getElementById('trackKeyInput').value = key;
+                switchWidgetTab('tracker');
+            }, 800);
+        }
+
+        // Track Order Status Verification
+        function verifyAndTrackStatus() {
+            const wa = document.getElementById('trackWaInput').value.trim();
+            const key = document.getElementById('trackKeyInput').value.trim();
+
+            if(!wa || !key) {
+                alert('Silakan masukkan Nomor WhatsApp & Kunci Akses!');
+                return;
+            }
+
+            document.getElementById('track-modal-wa').innerText = wa;
+            document.getElementById('track-modal-key').innerText = key.toUpperCase();
+            document.getElementById('modalTracking').classList.remove('hidden');
+            addFonnteLog(`[GUEST TRACK] Access Key ${key} verified for WA ${wa}.`);
+        }
+
+        function closeTrackingModal() {
+            document.getElementById('modalTracking').classList.add('hidden');
+        }
+
+        // Field Inspector PWA Functions
+        function togglePwaSubmit() {
+            const checked = document.getElementById('selfReviewCheck').checked;
+            const btn = document.getElementById('btnPwaSubmit');
+            if(checked) {
+                btn.disabled = false;
+                btn.className = "w-full py-2.5 rounded-xl bg-gradient-gold text-black font-extrabold font-tech text-xs uppercase tracking-wider cursor-pointer hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]";
+                btn.innerText = "Submit Results to Senior Review";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full py-2.5 rounded-xl bg-gray-700 text-gray-400 font-bold font-tech text-xs uppercase tracking-wider cursor-not-allowed";
+                btn.innerText = "Submit Inspection (Locked)";
+            }
+        }
+
+        function submitInspectionFromPwa() {
+            addFonnteLog(`[PWA SUBMIT] Inspector submitted B 1234 XYZ results.`);
+            alert('Hasil Inspeksi Berhasil Disubmit!\nPekerjaan diteruskan ke Antrean Senior Reviewer.');
+            switchRoleView('dashboard');
+        }
+
+        // Dashboard & Quality Gate Operations
+        function executeSeniorApproval() {
+            document.getElementById('dash-status-badge').className = "px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold";
+            document.getElementById('dash-status-badge').innerText = "SENIOR_APPROVED";
+            addFonnteLog(`[QA GATE] Senior Inspector approved B 1234 XYZ.`);
+            checkQualityGate();
+        }
+
+        function executeOwnerFastTrack() {
+            isApproved = true;
+            document.getElementById('dash-status-badge').className = "px-2 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37] font-bold";
+            document.getElementById('dash-status-badge').innerText = "OWNER_SELF_APPROVED";
+            addFonnteLog(`[FAST-TRACK] Owner Self-Approval executed. Status: APPROVED.`);
+            checkQualityGate();
+        }
+
+        function executePaymentSettlement() {
+            isPaid = true;
+            document.getElementById('dash-pay-badge').className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold";
+            document.getElementById('dash-pay-badge').innerText = "PAID";
+            addFonnteLog(`[PAYMENT] Settlement validated. Status: PAID.`);
+            checkQualityGate();
+        }
+
+        function checkQualityGate() {
+            const gateText = document.getElementById('gate-condition-text');
+            const btnPdf = document.getElementById('btnGeneratePdf');
+
+            if(isApproved && isPaid) {
+                gateText.className = "text-emerald-400 font-bold font-tech";
+                gateText.innerText = "QUALITY GATE UNLOCKED (Status APPROVED & Payment PAID)";
+                btnPdf.disabled = false;
+                btnPdf.className = "px-5 py-2.5 rounded-xl bg-gradient-gold text-black font-extrabold font-tech uppercase tracking-wider cursor-pointer hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]";
+            }
+        }
+
+        function generateAndSendPdfViaWa() {
+            addFonnteLog(`[PDF GENERATOR] Building White-Label PDF for B 1234 XYZ...`);
+            setTimeout(() => {
+                addFonnteLog(`[FONNTE DELIVERED] PDF Report & Link sent to WA 081299887766.`);
+                alert('Laporan PDF Berhasil Di-generate & Dikirikan via WhatsApp (Fonnte) ke Pelanggan!');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
